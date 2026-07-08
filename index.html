@@ -48,6 +48,7 @@ body{font-family:system-ui,sans-serif;background:#0d1117;color:#c9d1d9;min-heigh
   <div class=c><h2>温度</h2><span class=v id=tv>--</span><span class=u>°C</span></div>
   <div class=c><h2>湿度</h2><span class=v id=hv>--</span><span class=u>%</span></div>
   <div class=c><h2>烟雾浓度</h2><span class=v id=sv>--</span><span class=u>ppm</span></div>
+  <div class=c><h2>CO浓度</h2><span class=v id=cv>--</span><span class=u>ppm</span></div>
 </div>
 <div id=status></div>
 <script src="https://cdn.jsdelivr.net/npm/mqtt/dist/mqtt.min.js"></script>
@@ -105,6 +106,7 @@ function updateUI(d){
   S('tv',d.ev?(d.tmp||0).toFixed(1)+' C':'--');
   S('hv',d.ev?(d.hum||0).toFixed(1)+' %':'--');
   S('sv',d.ev?(d.smk||0).toFixed(1)+' ppm':'--');
+  S('cv',d.ev?(d.co||0).toFixed(1)+' ppm':'--');
 }
 
 function confirmResolve(){
