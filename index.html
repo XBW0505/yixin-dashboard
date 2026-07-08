@@ -19,7 +19,10 @@ body{font-family:system-ui,sans-serif;background:#0d1117;color:#c9d1d9;min-heigh
 .t{padding:3px 10px;border-radius:5px;font-size:12px;font-weight:700}
 .tg{background:#1b3a1b;color:#3fb950}.tr{background:#3a1b1b;color:#f85149}
 .f{background:#1b2d3a;border-radius:6px;padding:8px;font-size:14px;text-align:center}
-@keyframes p{0%,100%{background:#161b22}50%{background:#3a1b1b}}
+.bt{padding:8px 16px;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;width:100%;margin-top:8px}
+.bt.ok{background:#238636;color:#fff}.bt.ok:hover{background:#2ea043}
+.bt.ok:disabled{background:#555;cursor:not-allowed}
+#ackMsg{text-align:center;font-size:12px;color:#3fb950;margin-top:6px;display:none}
 .bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
 .dot.on{background:#3fb950}.dot.off{background:#f85149}
@@ -38,7 +41,9 @@ body{font-family:system-ui,sans-serif;background:#0d1117;color:#c9d1d9;min-heigh
 <div class=g>
   <div class='c w' id=pc><h2>老人状态</h2><div class=r>
     <span class=vs id=pv>--</span><span class='t tg' id=pt>--</span>
-  </div><div class=st style=margin-top:4px>摔倒次数:<b id=fc>0</b> | 设备:<b id=dv>--</b></div></div>
+  </div><div class=st style=margin-top:4px>摔倒次数:<b id=fc>0</b> | 设备:<b id=dv>--</b></div>
+    <button class='bt ok' id=ackBtn style=display:none onclick=confirmResolve()>护士确认：情况已解决</button>
+    <div id=ackMsg>已确认，告警已解除</div></div>
 
   <div class=c><h2>温度</h2><span class=v id=tv>--</span><span class=u>°C</span></div>
   <div class=c><h2>湿度</h2><span class=v id=hv>--</span><span class=u>%</span></div>
@@ -93,10 +98,24 @@ function updateUI(d){
   var t=$('pt');t.textContent=f?'告警':'正常';t.className='t '+(f?'tr':'tg');
   $('pc').style.animation=f?'p 1s infinite':'';
   S('fc',d.fc||0);
-  S('tv',d.ev?(d.tmp||0).toFixed(1)+' °C':'--');
+  S('tv',d.ev?(d.tmp||0).toFixed(1)+' C':'--');
   S('hv',d.ev?(d.hum||0).toFixed(1)+' %':'--');
   S('sv',d.ev?(d.smk||0).toFixed(1)+' ppm':'--');
   if(d.face){$('fc2').style.display='';S('fv',d.face)}
+  if(f){
+    $('ackBtn').style.display='';$('ackMsg').style.display='none';
+  }
+}
+
+function confirmResolve(){
+  if(!client||!client.connected) return;
+  client.publish('yixin_guard/ack', JSON.stringify({
+    action:'resolve', dev: document.getElementById('dv').textContent,
+    time: new Date().toLocaleString('zh-CN')
+  }));
+  $('ackBtn').disabled=true;$('ackBtn').textContent='已发送确认...';
+  $('ackMsg').style.display='';$('pc').style.animation='';
+  $('pv').textContent='已处理';$('pt').textContent='已确认';$('pt').className='t tg';
 }
 
 connectMQTT();
