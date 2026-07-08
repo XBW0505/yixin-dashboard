@@ -94,14 +94,19 @@ function updateUI(d){
   var f=d.p==1;
   S('pv',f?'摔倒! 请立即查看':'正常');
   var t=$('pt');t.textContent=f?'告警':'正常';t.className='t '+(f?'tr':'tg');
-  $('pc').style.animation=f?'p 1s infinite':'';
+  if(f){
+    $('pc').style.animation='p 1s infinite';
+    $('ackBtn').style.display='';
+    $('ackBtn').disabled=false;
+    $('ackBtn').textContent='护士确认：情况已解决';
+    $('ackMsg').style.display='none';
+  }else{
+    $('pc').style.animation='';
+  }
   S('fc',d.fc||0);
   S('tv',d.ev?(d.tmp||0).toFixed(1)+' C':'--');
   S('hv',d.ev?(d.hum||0).toFixed(1)+' %':'--');
   S('sv',d.ev?(d.smk||0).toFixed(1)+' ppm':'--');
-  if(f){
-    $('ackBtn').style.display='';$('ackMsg').style.display='none';
-  }
 }
 
 function confirmResolve(){
