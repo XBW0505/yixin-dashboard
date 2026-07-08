@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>颐芯守护 仪表盘</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0d1117;color:#c9d1d9;min-height:100vh;padding:10px}
+.h{text-align:center;padding:14px 0;border-bottom:1px solid #21262d;margin-bottom:12px}
+.h h1{font-size:22px;color:#58a6ff}.h span{font-size:12px;color:#8b949e}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:500px;margin:0 auto}
+.c{background:#161b22;border:1px solid #21262d;border-radius:12px;padding:14px}
+.c.w{grid-column:1/-1}
+.c h2{font-size:12px;color:#8b949e;margin-bottom:6px;letter-spacing:1px}
+.v{font-size:28px;font-weight:700;color:#e6edf3}.vs{font-size:18px}
+.u{font-size:12px;color:#8b949e;margin-left:2px}
+.r{display:flex;justify-content:space-between;align-items:center}
+.t{padding:3px 10px;border-radius:5px;font-size:12px;font-weight:700}
+.tg{background:#1b3a1b;color:#3fb950}.tr{background:#3a1b1b;color:#f85149}
+.f{background:#1b2d3a;border-radius:6px;padding:8px;font-size:14px;text-align:center}
+@keyframes p{0%,100%{background:#161b22}50%{background:#3a1b1b}}
+.bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+.dot.on{background:#3fb950}.dot.off{background:#f85149}
+.st{font-size:11px;color:#8b949e}
+#status{font-size:12px;color:#8b949e;text-align:center;margin-top:4px}
+</style>
+</head>
+<body>
+<div class=h>
+  <h1>颐芯守护 仪表盘</h1>
+  <div class=bar style=max-width:500px;margin:0 auto>
+    <span class=st id=time>--</span>
+    <span><span class='dot off' id=dot></span><span id=conn>连接中...</span></span>
+  </div>
+</div>
+<div class=g>
+  <div class='c w' id=pc><h2>姿态状态</h2><div class=r>
+    <span class=vs id=pv>--</span><span class='t tg' id=pt>--</span>
+  </div><div class=st style=margin-top:4px>摔倒次数:<b id=fc>0</b> | 设备:<b id=dv>--</b></div></div>
+
+  <div class=c><h2>加速度</h2><span class=v id=av>--</span><span class=u>g</span></div>
+  <div class=c><h2>俯仰角</h2><span class=vs id=piv>--</span><span class=u>°</span></div>
+  <div class=c><h2>翻滚角</h2><span class=vs id=rv>--</span><span class=u>°</span></div>
+  <div class=c><h2>温度</h2><span class=v id=tv>--</span><span class=u>°C</span></div>
+  <div class=c><h2>湿度</h2><span class=v id=hv>--</span><span class=u>%</span></div>
+  <div class=c><h2>烟雾</h2><span class=v id=sv>--</span><span class=u>ppm</span></div>
+
+  <div class='c w' id=fc2 style=display:none><h2>人脸识别</h2>
+    <div class=f id=fv>--</div></div>
+</div>
+<div id=status></div>
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<script>
+var client, topic='yixin_guard/data';
+function $(id){return document.getElementById(id)}
+function S(id,v){var e=$(id);if(e&&v!=null)e.textContent=v}
+
+function connectMQTT(){
+  $('status').textContent='正在连接云端...';
+  client=mqtt.connect('wss://broker.emqx.io:8084/mqtt');
+
+  client.on('connect',function(){
+    $('dot').className='dot on';$('conn').textContent='云端已连接';
+    $('status').textContent='等待设备数据...';
+    client.subscribe(topic);
+  });
+
+  client.on('message',function(topic,payload){
+    try{
+      var d=JSON.parse(payload.toString());
+      updateUI(d);
+      $('status').textContent='';
+    }catch(e){}
+  });
+
+  client.on('close',function(){
+    $('dot').className='dot off';$('conn').textContent='断开,重连中...';
+    $('status').textContent='连接断开,5秒后重试...';
+    setTimeout(connectMQTT,5000);
+  });
+
+  client.on('error',function(e){
+    $('status').textContent='连接失败,重试中...';
+  });
+}
+
+function updateUI(d){
+  S('time',new Date().toLocaleTimeString('zh-CN'));
+  S('dv',d.dev||'--');
+  var f=d.p==1;
+  S('pv',f?'摔倒!':'正常');
+  var t=$('pt');t.textContent=f?'告警':'正常';t.className='t '+(f?'tr':'tg');
+  $('pc').style.animation=f?'p 1s infinite':'';
+  S('fc',d.fc||0);
+  S('av',(d.acc||0).toFixed(2));
+  S('piv',(d.pitch||0).toFixed(1));
+  S('rv',(d.roll||0).toFixed(1));
+  S('tv',d.ev?(d.tmp||0).toFixed(1):'--');
+  S('hv',d.ev?(d.hum||0).toFixed(1):'--');
+  S('sv',d.ev?(d.smk||0).toFixed(1):'--');
+  if(d.face){$('fc2').style.display='';S('fv',d.face)}
+}
+
+connectMQTT();
+</script>
+</body>
+</html>
